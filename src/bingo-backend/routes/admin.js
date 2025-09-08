@@ -1,52 +1,85 @@
 import express from 'express';
-import multer from 'multer';
-import { Player } from '../models/Player.js';
-import { DepositConfirmation } from '../models/DepositConfirmation.js';
+import mongoose from 'mongoose';
+import DepositConfirmation from '../models/DepositConfirmation.js';
+import Player from '../models/Player.js';
 
 const router = express.Router();
-const upload = multer({ dest: 'uploads/' });
 
-// POST /deposit/confirm — user submits deposit with screenshot
-router.post('/confirm', upload.single('screenshot'), async (req, res) => {
-  const { telegramId, amount, method, txId, phone } = req.body;
-  const screenshotPath = req.file?.path;
-
-  // Basic validation
-  if (!telegramId || !amount || !method || !txId) {
-    return res.status(400).json({ success: false, message: 'Missing required fields' });
+// ✅ View all deposit confirmations
+router.get('/deposits', async (req, res) => {
+  try {
+    const deposits = await DepositConfirmation.find().sort({ submittedAt: -1 });
+    res.status(200).json({ success: true, deposits });
+  } catch (err) {
+    console.error('Admin deposits error:', err);
+    res.status(500).json({ success: false, message: 'Server error while fetching deposits' });
   }
+});
 
-  if (Number(amount) < 30) {
-    return res.status(400).json({ success: false, message: 'Minimum deposit is 30 Br' });
-  }
+// ✅ Approve deposit and credit coins
+router.post('/approve-deposit/:id', async (req, res) => {
+  const { id } = req.params;
 
-  if (!['CBE', 'CBE_BIRR', 'TELEBIRR'].includes(method)) {
-    return res.status(400).json({ success: false, message: 'Invalid deposit method' });
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ success: false, message: 'Invalid deposit ID' });
   }
 
   try {
-    const player = await Player.findOne({ telegramId });
+    const deposit = await DepositConfirmation.findById(id);
+    if (!deposit || deposit.status !== 'pending') {
+      return res.status(404).json({ success: false, message: 'Deposit not found or already processed' });
+    }
+
+    const player = await Player.findOne({ telegramId: deposit.telegramId });
     if (!player) {
       return res.status(404).json({ success: false, message: 'Player not found' });
     }
 
-    const confirmation = new DepositConfirmation({
-      telegramId,
-      username: player.username,
-      amount,
-      method,
-      txId,
-      phone,
-      screenshot: screenshotPath,
-      status: 'pending',
-      submittedAt: new Date()
-    });
+    player.coins += deposit.amount;
+    await player.save();
 
-    await confirmation.save();
-    res.status(200).json({ success: true, message: '✅ Deposit submitted with screenshot' });
+    deposit.status = 'approved';
+    deposit.processedAt = new Date();
+    await deposit.save();
+
+    res.status(200).json({
+      success: true,
+      message: `✅ Deposit approved and ${deposit.amount} coins credited`,
+      depositId: deposit._id,
+      playerId: player._id
+    });
   } catch (err) {
-    console.error('❌ Deposit confirm error:', err);
-    res.status(500).json({ success: false, message: 'Server error during deposit confirmation' });
+    console.error('Approve deposit error:', err);
+    res.status(500).json({ success: false, message: 'Server error during approval' });
+  }
+});
+
+// ✅ Reject deposit
+router.post('/reject-deposit/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ success: false, message: 'Invalid deposit ID' });
+  }
+
+  try {
+    const deposit = await DepositConfirmation.findById(id);
+    if (!deposit || deposit.status !== 'pending') {
+      return res.status(404).json({ success: false, message: 'Deposit not found or already processed' });
+    }
+
+    deposit.status = 'rejected';
+    deposit.processedAt = new Date();
+    await deposit.save();
+
+    res.status(200).json({
+      success: true,
+      message: '❌ Deposit rejected',
+      depositId: deposit._id
+    });
+  } catch (err) {
+    console.error('Reject deposit error:', err);
+    res.status(500).json({ success: false, message: 'Server error during rejection' });
   }
 });
 
