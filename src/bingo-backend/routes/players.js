@@ -4,18 +4,20 @@ import Payout from '../models/Payout.js';
 
 const router = express.Router();
 
-// Health check
+// ✅ Health check
 router.get('/', (req, res) => {
   res.send('Players route is working ✅');
 });
 
-// Play Bingo
+// ✅ Play Bingo — adds coins and win count
 router.post('/:telegramId/play', async (req, res) => {
   const { telegramId } = req.params;
 
   try {
     const player = await Player.findOne({ telegramId });
-    if (!player) return res.status(404).json({ success: false, message: 'Player not found' });
+    if (!player) {
+      return res.status(404).json({ success: false, message: 'Player not found' });
+    }
 
     player.coins += 5;
     player.wins += 1;
@@ -23,17 +25,17 @@ router.post('/:telegramId/play', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Bingo played successfully',
+      message: '🎉 Bingo played successfully',
       coins: player.coins,
       wins: player.wins
     });
   } catch (err) {
-    console.error('Play error:', err);
+    console.error('❌ Play error:', err);
     res.status(500).json({ success: false, message: 'Server error during play' });
   }
 });
 
-// Leaderboard
+// ✅ Leaderboard — top 10 by wins
 router.get('/leaderboard', async (req, res) => {
   try {
     const topPlayers = await Player.find({})
@@ -43,15 +45,19 @@ router.get('/leaderboard', async (req, res) => {
 
     res.status(200).json({ success: true, leaderboard: topPlayers });
   } catch (err) {
-    console.error('Leaderboard error:', err);
+    console.error('❌ Leaderboard error:', err);
     res.status(500).json({ success: false, message: 'Server error while fetching leaderboard' });
   }
 });
 
-// Payout with rules
+// ✅ Payout request with rules
 router.post('/:telegramId/payout', async (req, res) => {
   const { telegramId } = req.params;
   const { amount } = req.body;
+
+  if (!amount || isNaN(amount)) {
+    return res.status(400).json({ success: false, message: 'Invalid amount' });
+  }
 
   try {
     const player = await Player.findOne({ telegramId });
@@ -85,37 +91,3 @@ router.post('/:telegramId/payout', async (req, res) => {
     await player.save();
     await payout.save();
 
-    res.status(200).json({
-      success: true,
-      message: '✅ Payout approved',
-      payoutId: payout._id
-    });
-  } catch (err) {
-    console.error('Payout error:', err);
-    res.status(500).json({ success: false, message: 'Server error during payout request' });
-  }
-});
-
-// Payout history
-router.get('/:telegramId/payouts', async (req, res) => {
-  const { telegramId } = req.params;
-
-  try {
-    const payouts = await Payout.find({ telegramId }).sort({ requestedAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      payouts: payouts.map(p => ({
-        amount: p.amount,
-        status: p.status,
-        requestedAt: p.requestedAt,
-        processedAt: p.processedAt
-      }))
-    });
-  } catch (err) {
-    console.error('Payout history error:', err);
-    res.status(500).json({ success: false, message: 'Server error while fetching payout history' });
-  }
-});
-
-export default router;
