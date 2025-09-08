@@ -1,67 +1,52 @@
 import express from 'express';
-import DepositConfirmation from '../models/DepositConfirmation.js';
-import Player from '../models/Player.js';
+import multer from 'multer';
+import { Player } from '../models/Player.js';
+import { DepositConfirmation } from '../models/DepositConfirmation.js';
 
 const router = express.Router();
+const upload = multer({ dest: 'uploads/' });
 
-// ✅ View all deposit confirmations
-router.get('/deposits', async (req, res) => {
-  try {
-    const deposits = await DepositConfirmation.find().sort({ submittedAt: -1 });
-    res.status(200).json({ success: true, deposits });
-  } catch (err) {
-    console.error('Admin deposits error:', err);
-    res.status(500).json({ success: false, message: 'Server error while fetching deposits' });
+// POST /deposit/confirm — user submits deposit with screenshot
+router.post('/confirm', upload.single('screenshot'), async (req, res) => {
+  const { telegramId, amount, method, txId, phone } = req.body;
+  const screenshotPath = req.file?.path;
+
+  // Basic validation
+  if (!telegramId || !amount || !method || !txId) {
+    return res.status(400).json({ success: false, message: 'Missing required fields' });
   }
-});
 
-// ✅ Approve deposit and credit coins
-router.post('/approve-deposit/:id', async (req, res) => {
-  const { id } = req.params;
+  if (Number(amount) < 30) {
+    return res.status(400).json({ success: false, message: 'Minimum deposit is 30 Br' });
+  }
+
+  if (!['CBE', 'CBE_BIRR', 'TELEBIRR'].includes(method)) {
+    return res.status(400).json({ success: false, message: 'Invalid deposit method' });
+  }
 
   try {
-    const deposit = await DepositConfirmation.findById(id);
-    if (!deposit || deposit.status !== 'pending') {
-      return res.status(404).json({ success: false, message: 'Deposit not found or already processed' });
-    }
-
-    const player = await Player.findOne({ telegramId: deposit.telegramId });
+    const player = await Player.findOne({ telegramId });
     if (!player) {
       return res.status(404).json({ success: false, message: 'Player not found' });
     }
 
-    player.coins += deposit.amount;
-    await player.save();
+    const confirmation = new DepositConfirmation({
+      telegramId,
+      username: player.username,
+      amount,
+      method,
+      txId,
+      phone,
+      screenshot: screenshotPath,
+      status: 'pending',
+      submittedAt: new Date()
+    });
 
-    deposit.status = 'approved';
-    deposit.processedAt = new Date();
-    await deposit.save();
-
-    res.status(200).json({ success: true, message: `✅ Deposit approved and ${deposit.amount} coins credited` });
+    await confirmation.save();
+    res.status(200).json({ success: true, message: '✅ Deposit submitted with screenshot' });
   } catch (err) {
-    console.error('Approve deposit error:', err);
-    res.status(500).json({ success: false, message: 'Server error during approval' });
-  }
-});
-
-// ✅ Reject deposit
-router.post('/reject-deposit/:id', async (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const deposit = await DepositConfirmation.findById(id);
-    if (!deposit || deposit.status !== 'pending') {
-      return res.status(404).json({ success: false, message: 'Deposit not found or already processed' });
-    }
-
-    deposit.status = 'rejected';
-    deposit.processedAt = new Date();
-    await deposit.save();
-
-    res.status(200).json({ success: true, message: '❌ Deposit rejected' });
-  } catch (err) {
-    console.error('Reject deposit error:', err);
-    res.status(500).json({ success: false, message: 'Server error during rejection' });
+    console.error('❌ Deposit confirm error:', err);
+    res.status(500).json({ success: false, message: 'Server error during deposit confirmation' });
   }
 });
 
