@@ -15,10 +15,11 @@ export const getReferralStats = async (req, res) => {
       success: true,
       referralCode: player.referralCode || telegramId,
       referrals: player.referrals?.length || 0,
-      coinsEarned: player.referralCoins || 0
+      coinsEarned: player.referralCoins || 0,
+      referredUsers: player.referrals || []
     });
   } catch (err) {
-    console.error('Error fetching referral stats:', err);
+    console.error('❌ Error fetching referral stats:', err);
     res.status(500).json({ success: false, message: 'Server error while fetching referral stats' });
   }
 };
@@ -27,6 +28,10 @@ export const getReferralStats = async (req, res) => {
 export const updateReferralStats = async (req, res) => {
   const { referralCode } = req.params;
   const { newUserId } = req.body;
+
+  if (!newUserId) {
+    return res.status(400).json({ success: false, message: 'Missing newUserId in request body' });
+  }
 
   try {
     const inviter = await Player.findOne({ referralCode });
@@ -45,9 +50,15 @@ export const updateReferralStats = async (req, res) => {
 
     console.log(`✅ Referral recorded: ${referralCode} → ${newUserId}`);
 
-    res.status(200).json({ success: true, message: 'Referral recorded and coins rewarded' });
+    res.status(200).json({
+      success: true,
+      message: 'Referral recorded and coins rewarded',
+      inviterId: inviter.telegramId,
+      totalReferrals: inviter.referrals.length,
+      totalReferralCoins: inviter.referralCoins
+    });
   } catch (err) {
-    console.error('Referral update error:', err);
+    console.error('❌ Referral update error:', err);
     res.status(500).json({ success: false, message: 'Server error while updating referral stats' });
   }
 };
