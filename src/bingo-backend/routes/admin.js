@@ -11,7 +11,7 @@ router.get('/deposits', async (req, res) => {
     const deposits = await DepositConfirmation.find().sort({ submittedAt: -1 });
     res.status(200).json({ success: true, deposits });
   } catch (err) {
-    console.error('Admin deposits error:', err);
+    console.error('❌ Admin deposits error:', err);
     res.status(500).json({ success: false, message: 'Server error while fetching deposits' });
   }
 });
@@ -46,17 +46,19 @@ router.post('/approve-deposit/:id', async (req, res) => {
       success: true,
       message: `✅ Deposit approved and ${deposit.amount} coins credited`,
       depositId: deposit._id,
-      playerId: player._id
+      playerId: player._id,
+      newBalance: player.coins
     });
   } catch (err) {
-    console.error('Approve deposit error:', err);
+    console.error('❌ Approve deposit error:', err);
     res.status(500).json({ success: false, message: 'Server error during approval' });
   }
 });
 
-// ✅ Reject deposit
+// ✅ Reject deposit with optional reason
 router.post('/reject-deposit/:id', async (req, res) => {
   const { id } = req.params;
+  const { reason } = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     return res.status(400).json({ success: false, message: 'Invalid deposit ID' });
@@ -70,15 +72,17 @@ router.post('/reject-deposit/:id', async (req, res) => {
 
     deposit.status = 'rejected';
     deposit.processedAt = new Date();
+    if (reason) deposit.notes = reason;
     await deposit.save();
 
     res.status(200).json({
       success: true,
       message: '❌ Deposit rejected',
-      depositId: deposit._id
+      depositId: deposit._id,
+      reason: reason || 'No reason provided'
     });
   } catch (err) {
-    console.error('Reject deposit error:', err);
+    console.error('❌ Reject deposit error:', err);
     res.status(500).json({ success: false, message: 'Server error during rejection' });
   }
 });
