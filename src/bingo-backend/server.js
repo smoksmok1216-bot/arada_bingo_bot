@@ -13,6 +13,7 @@ import adminRoute from './routes/admin.js';
 import healthRoute from './routes/health.js';
 import playersRoute from './routes/players.js';
 import statsRoute from './routes/stats.js';
+import gameRoute from './routes/game.js';
 
 dotenv.config();
 
@@ -38,6 +39,7 @@ app.use('/admin', adminRoute);
 app.use('/health', healthRoute);
 app.use('/players', playersRoute);
 app.use('/stats', statsRoute);
+app.use('/game', gameRoute);
 
 // Root endpoint
 app.get('/', (req, res) => {
