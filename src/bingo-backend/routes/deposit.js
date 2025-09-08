@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
-import { Player } from '../models/Player.js';
-import { DepositConfirmation } from '../models/DepositConfirmation.js';
+import Player from '../models/Player.js';
+import DepositConfirmation from '../models/DepositConfirmation.js';
 
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
@@ -11,7 +11,7 @@ router.post('/confirm', upload.single('screenshot'), async (req, res) => {
   const { telegramId, amount, method, txId, phone } = req.body;
   const screenshotPath = req.file?.path;
 
-  // Basic validation
+  // Validate required fields
   if (!telegramId || !amount || !method || !txId) {
     return res.status(400).json({ success: false, message: 'Missing required fields' });
   }
