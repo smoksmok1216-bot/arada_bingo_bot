@@ -2,11 +2,12 @@ import express from 'express';
 import mongoose from 'mongoose';
 import DepositConfirmation from '../models/DepositConfirmation.js';
 import Player from '../models/Player.js';
+import adminAuth from '../middleware/adminAuth.js';
 
 const router = express.Router();
 
 // ✅ View all deposit confirmations
-router.get('/deposits', async (req, res) => {
+router.get('/deposits', adminAuth, async (req, res) => {
   try {
     const deposits = await DepositConfirmation.find().sort({ submittedAt: -1 });
     res.status(200).json({ success: true, deposits });
@@ -17,7 +18,7 @@ router.get('/deposits', async (req, res) => {
 });
 
 // ✅ Approve deposit and credit coins
-router.post('/approve-deposit/:id', async (req, res) => {
+router.post('/approve-deposit/:id', adminAuth, async (req, res) => {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -56,7 +57,7 @@ router.post('/approve-deposit/:id', async (req, res) => {
 });
 
 // ✅ Reject deposit with optional reason
-router.post('/reject-deposit/:id', async (req, res) => {
+router.post('/reject-deposit/:id', adminAuth, async (req, res) => {
   const { id } = req.params;
   const { reason } = req.body;
 
