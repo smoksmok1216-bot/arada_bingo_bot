@@ -6,12 +6,13 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Import your route files
+// Import route files
 import referralRoute from './routes/referral.js';
+import depositRoute from './routes/deposit.js';
+import adminRoute from './routes/admin.js';
 import healthRoute from './routes/health.js';
-// import depositRoute from './routes/deposit.js';
-// import adminRoute from './routes/admin.js';
-// Add other routes as needed
+import playersRoute from './routes/players.js';
+import statsRoute from './routes/stats.js';
 
 dotenv.config();
 
@@ -23,18 +24,20 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Middleware
-app.use(cors()); // ✅ Enables frontend access from Netlify
+app.use(cors()); // ✅ Enables frontend access from Netlify or Telegram Web App
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Static file serving (optional)
+// Static file serving for screenshots
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
 app.use('/referral', referralRoute);
+app.use('/deposit', depositRoute);
+app.use('/admin', adminRoute);
 app.use('/health', healthRoute);
-// app.use('/deposit', depositRoute);
-// app.use('/admin', adminRoute);
+app.use('/players', playersRoute);
+app.use('/stats', statsRoute);
 
 // Root endpoint
 app.get('/', (req, res) => {
