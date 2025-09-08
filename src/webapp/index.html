@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Arada Bingo Bot</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+    h2 { margin-top: 30px; }
+    button { margin: 5px; padding: 10px 20px; }
+    input, select { margin: 5px; padding: 8px; width: 100%; }
+    ul { padding-left: 20px; }
+  </style>
+</head>
+<body>
+
+  <h1 id="welcome">👋 Welcome!</h1>
+
+  <h2>🎯 Referral Stats</h2>
+  <p id="referral">Loading...</p>
+
+  <h2>🎮 Play</h2>
+  <button id="playBtn">Play Bingo</button>
+  <button id="claimBtn">Claim Reward</button>
+
+  <h2>💳 Deposit</h2>
+  <button id="depositBtn">Submit Deposit</button>
+
+  <div id="depositForm" style="display:none; padding: 10px; border: 1px solid #ccc; border-radius: 8px; background-color: #f9f9f9;">
+    <h3>💳 Manual Deposit</h3>
+
+    <label for="depositMethod">Choose Method:</label><br/>
+    <select id="depositMethod">
+      <option value="CBE">CBE</option>
+      <option value="CBE_BIRR">CBE Birr</option>
+      <option value="TELEBIRR">Telebirr</option>
+    </select><br/><br/>
+
+    <label for="depositAmount">Amount (min 30 Br):</label><br/>
+    <input type="number" id="depositAmount" placeholder="Enter amount" /><br/><br/>
+
+    <label for="depositPhone">Phone Number (optional):</label><br/>
+    <input type="text" id="depositPhone" placeholder="09..." /><br/><br/>
+
+    <label for="depositTxId">Transaction Code:</label><br/>
+    <input type="text" id="depositTxId" placeholder="e.g. TX123456" /><br/><br/>
+
+    <label for="depositScreenshot">Upload Screenshot (optional):</label><br/>
+    <input type="file" id="depositScreenshot" accept="image/*" /><br/><br/>
+
+    <button id="submitDeposit" style="padding: 8px 16px; background-color: #28a745; color: white; border: none; border-radius: 4px;">
+      ✅ Verify Deposit
+    </button>
+  </div>
+
+  <h2>📢 Invite Friends</h2>
+  <button id="inviteBtn">Invite via Telegram</button>
+
+  <h2>🏆 Leaderboard</h2>
+  <ul id="leaderboard">Loading...</ul>
+
+  <h2>📜 Payout History</h2>
+  <ul id="payoutHistory">Loading...</ul>
+
+  <h2>🛠️ Admin Panel — Payouts</h2>
+  <ul id="adminPayouts">Loading...</ul>
+
+  <h2>🛠️ Admin Panel — Deposits</h2>
+  <ul id="adminDeposits">Loading...</ul>
+
+  <script src="./app.js"></script>
+</body>
+</html>
