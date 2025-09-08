@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 
 // Import your route files
 import referralRoute from './routes/referral.js';
+import healthRoute from './routes/health.js';
 // import depositRoute from './routes/deposit.js';
 // import adminRoute from './routes/admin.js';
 // Add other routes as needed
@@ -31,6 +32,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
 app.use('/referral', referralRoute);
+app.use('/health', healthRoute);
 // app.use('/deposit', depositRoute);
 // app.use('/admin', adminRoute);
 
@@ -40,10 +42,7 @@ app.get('/', (req, res) => {
 });
 
 // MongoDB connection
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
+mongoose.connect(process.env.MONGO_URI).then(() => {
   console.log('✅ Connected to MongoDB');
   app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
 }).catch(err => {
