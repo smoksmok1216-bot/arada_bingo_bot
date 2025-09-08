@@ -91,3 +91,37 @@ router.post('/:telegramId/payout', async (req, res) => {
     await player.save();
     await payout.save();
 
+    res.status(200).json({
+      success: true,
+      message: '✅ Payout approved',
+      payoutId: payout._id
+    });
+  } catch (err) {
+    console.error('❌ Payout error:', err);
+    res.status(500).json({ success: false, message: 'Server error during payout request' });
+  }
+});
+
+// ✅ Payout history
+router.get('/:telegramId/payouts', async (req, res) => {
+  const { telegramId } = req.params;
+
+  try {
+    const payouts = await Payout.find({ telegramId }).sort({ requestedAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      payouts: payouts.map(p => ({
+        amount: p.amount,
+        status: p.status,
+        requestedAt: p.requestedAt,
+        processedAt: p.processedAt
+      }))
+    });
+  } catch (err) {
+    console.error('❌ Payout history error:', err);
+    res.status(500).json({ success: false, message: 'Server error while fetching payout history' });
+  }
+});
+
+export default router;
