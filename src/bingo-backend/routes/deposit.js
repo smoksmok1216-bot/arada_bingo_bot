@@ -1,38 +1,38 @@
 import express from 'express';
 import multer from 'multer';
-import Player from '../models/Player.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import DepositConfirmation from '../models/DepositConfirmation.js';
 
 const router = express.Router();
-const upload = multer({ dest: 'uploads/' });
 
-// POST /deposit/confirm — user submits deposit with screenshot
+// Resolve __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Multer setup for screenshot uploads
+const storage = multer.diskStorage({
+  destination: path.join(__dirname, '../uploads'),
+  filename: (req, file, cb) => {
+    const uniqueName = `${Date.now()}-${file.originalname}`;
+    cb(null, uniqueName);
+  }
+});
+const upload = multer({ storage });
+
+// POST /deposit/confirm — user submits deposit
 router.post('/confirm', upload.single('screenshot'), async (req, res) => {
-  const { telegramId, amount, method, txId, phone } = req.body;
-  const screenshotPath = req.file?.path;
+  const { telegramId, username, amount, method, txId, phone } = req.body;
+  const screenshotPath = req.file ? `/uploads/${req.file.filename}` : null;
 
-  // Validate required fields
   if (!telegramId || !amount || !method || !txId) {
     return res.status(400).json({ success: false, message: 'Missing required fields' });
   }
 
-  if (Number(amount) < 30) {
-    return res.status(400).json({ success: false, message: 'Minimum deposit is 30 Br' });
-  }
-
-  if (!['CBE', 'CBE_BIRR', 'TELEBIRR'].includes(method)) {
-    return res.status(400).json({ success: false, message: 'Invalid deposit method' });
-  }
-
   try {
-    const player = await Player.findOne({ telegramId });
-    if (!player) {
-      return res.status(404).json({ success: false, message: 'Player not found' });
-    }
-
-    const confirmation = new DepositConfirmation({
+    const deposit = new DepositConfirmation({
       telegramId,
-      username: player.username,
+      username,
       amount,
       method,
       txId,
@@ -42,11 +42,16 @@ router.post('/confirm', upload.single('screenshot'), async (req, res) => {
       submittedAt: new Date()
     });
 
-    await confirmation.save();
-    res.status(200).json({ success: true, message: '✅ Deposit submitted with screenshot' });
+    await deposit.save();
+
+    res.status(200).json({
+      success: true,
+      message: '✅ Deposit submitted successfully',
+      depositId: deposit._id
+    });
   } catch (err) {
-    console.error('❌ Deposit confirm error:', err);
-    res.status(500).json({ success: false, message: 'Server error during deposit confirmation' });
+    console.error('❌ Deposit error:', err);
+    res.status(500).json({ success: false, message: 'Server error during deposit submission' });
   }
 });
 
