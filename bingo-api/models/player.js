@@ -1,35 +1,16 @@
 const mongoose = require('mongoose');
 
 const playerSchema = new mongoose.Schema({
-  telegramId: {
-    type: String,
-    unique: true,
-    required: true
-  },
+  telegramId: { type: String, unique: true, required: true },
   name: String,
   username: String,
-  coins: {
-    type: Number,
-    default: 0
-  },
-  wins: {
-    type: Number,
-    default: 0
-  },
+  coins: { type: Number, default: 0 },
+  wins: { type: Number, default: 0 },
   referralCode: String,
   referredBy: String,
-  isAdmin: {
-    type: Boolean,
-    default: false
-  },
-  language: {
-    type: String,
-    default: 'am' // or 'en'
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+  isAdmin: { type: Boolean, default: false },
+  language: { type: String, default: 'am' },
+  createdAt: { type: Date, default: Date.now }
 });
 
 playerSchema.methods.addCoins = function(amount) {
