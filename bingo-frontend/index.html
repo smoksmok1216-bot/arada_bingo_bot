@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Arada Bingo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🎉 Arada Bingo</h1>
+    <p>በኢትዮጵያ ላይ እውነተኛ ሽልማቶችን አግኝ!</p>
+  </header>
+
+  <div class="controls">
+    <button onclick="playBingo()">🎮 ጀምር / Start Game</button>
+    <div id="loading" style="display:none;">🔄 Loading your card...</div>
+  </div>
+
+  <div id="bingo-card"></div>
+
+  <div id="status-message"></div>
+
+  <audio id="bingo-audio" src=""></audio>
+
+  <script src="script.js"></script>
+  <script>
+    // Telegram Web App integration
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+    }
+
+    async function playBingo() {
+      document.getElementById('loading').style.display = 'block';
+      const res = await fetch('https://your-backend-url.com/game/card');
+      const data = await res.json();
+
+      if (data.success) {
+        renderCard(data.card);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('status-message').textContent = '🎯 Card loaded. Tap to play!';
+      } else {
+        document.getElementById('status-message').textContent = '❌ Failed to load card';
+      }
+    }
+
+    function renderCard(card) {
+      const container = document.getElementById('bingo-card');
+      container.innerHTML = '';
+      card.forEach((row, rowIndex) => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'bingo-row';
+        row.forEach((cell, colIndex) => {
+          const cellDiv = document.createElement('div');
+          cellDiv.className = 'bingo-cell';
+          cellDiv.textContent = cell;
+          cellDiv.onclick = () => markCell(rowIndex, colIndex);
+          rowDiv.appendChild(cellDiv);
+        });
+        container.appendChild(rowDiv);
+      });
+    }
+
+    async function markCell(row, col) {
+      const res = await fetch('https://your-backend-url.com/game/mark', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ row, col })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        document.getElementById('status-message').textContent = data.message;
+        if (data.audio) {
+          const audio = document.getElementById('bingo-audio');
+          audio.src = data.audio;
+          audio.play();
+        }
+      } else {
+        document.getElementById('status-message').textContent = '❌ Invalid move';
+      }
+    }
+  </script>
+</body>
+</html>
