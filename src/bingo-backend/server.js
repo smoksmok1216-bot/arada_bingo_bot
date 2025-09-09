@@ -44,12 +44,12 @@ app.use('/stats', statsRoute);
 app.use('/game', gameRoute);
 app.use('/payouts', payoutRoute);
 
-// Root endpoint (Telegram Web App)
+// Telegram Web App root
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../bingo-frontend/index.html'));
 });
 
-// Admin dashboard endpoint
+// Admin dashboard route
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, '../bingo-frontend/admin.html'));
 });
