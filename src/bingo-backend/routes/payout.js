@@ -37,4 +37,19 @@ router.get('/:telegramId', async (req, res) => {
 
     res.status(200).json({
       success: true,
-      payouts: payouts.map(p =>
+      total: payouts.length,
+      payouts: payouts.map(p => ({
+        amount: p.amount,
+        status: p.status,
+        requestedAt: p.requestedAt,
+        processedAt: p.processedAt,
+        notes: p.notes || ''
+      }))
+    });
+  } catch (err) {
+    console.error('❌ User payout fetch error:', err);
+    res.status(500).json({ success: false, message: 'Server error while fetching payout history' });
+  }
+});
+
+export default router;
