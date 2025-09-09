@@ -19,14 +19,14 @@ const app = express();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// 🌐 CORS (optional, for frontend access)
+// 🌐 CORS (for frontend access)
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*'); // Adjust for production
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, x-admin-token');
   next();
 });
 
-// 📁 Static files (optional)
+// 📁 Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 🛣️ Routes
@@ -36,5 +36,5 @@ app.use('/api', routes);
 // 🟢 Start server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`Bingo API running on port ${port}`);
+  console.log(`Arada Bingo API running on port ${port}`);
 });
