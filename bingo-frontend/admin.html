@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Arada Bingo Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; padding: 1em; background: #f4f4f4; }
+    h1 { color: #333; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 2em; }
+    th, td { padding: 0.5em; border: 1px solid #ccc; text-align: left; }
+    th { background: #eee; }
+    .status-pending { background: #fff8c6; }
+    .status-approved { background: #c6f7d4; }
+    .status-rejected { background: #f7c6c6; }
+    button { padding: 0.4em 0.8em; margin: 0 2px; }
+    img { max-width: 100px; border-radius: 4px; }
+    .section { margin-bottom: 3em; }
+    .filter { margin-bottom: 1em; }
+  </style>
+</head>
+<body>
+  <h1>🎛️ Arada Bingo Admin Panel</h1>
+
+  <div class="section">
+    <h2>📥 Deposit Requests</h2>
+    <div class="filter">
+      <input type="text" id="depositFilter" placeholder="Filter by Telegram ID" oninput="filterDeposits()">
+    </div>
+    <table id="depositTable">
+      <thead>
+        <tr>
+          <th>Telegram ID</th>
+          <th>Amount</th>
+          <th>Screenshot</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>💸 Payout History</h2>
+    <table id="payoutTable">
+      <thead>
+        <tr>
+          <th>Telegram ID</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Requested</th>
+          <th>Processed</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>📊 Stats Overview</h2>
+    <div id="stats"></div>
+  </div>
+
+  <script>
+    const adminToken = 'your-admin-token-here'; // Replace with secure token
+
+    async function loadDeposits() {
+      const res = await fetch('https://arada-bingo-bot.onrender.com/deposit/all', {
+        headers: { 'x-admin-token': adminToken }
+      });
+      const data = await res.json();
+      const tbody = document.querySelector('#depositTable tbody');
+      tbody.innerHTML = '';
+
+      data.deposits.forEach(dep => {
+        const tr = document.createElement('tr');
+        tr.className = `status-${dep.status}`;
+
+        tr.innerHTML = `
+          <td>${dep.telegramId}</td>
+          <td>${dep.amount}</td>
+          <td><img src="${dep.screenshot}" alt="screenshot"></td>
+          <td>${dep.status}</td>
+          <td>
+            <button onclick="approveDeposit('${dep._id}')">✅ Approve</button>
+            <button onclick="rejectDeposit('${dep._id}')">❌ Reject</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function approveDeposit(id) {
+      await fetch(`https://arada-bingo-bot.onrender.com/admin/approve/${id}`, {
+        method: 'POST',
+        headers: { 'x-admin-token': adminToken }
+      });
+      loadDeposits();
+    }
+
+    async function rejectDeposit(id) {
+      await fetch(`https://arada-bingo-bot.onrender.com/admin/reject/${id}`, {
+        method: 'POST',
+        headers: { 'x-admin-token': adminToken }
+      });
+      loadDeposits();
+    }
+
+    function filterDeposits() {
+      const input = document.getElementById('depositFilter').value.toLowerCase();
+      const rows = document.querySelectorAll('#depositTable tbody tr');
+      rows.forEach(row => {
+        const id = row.cells[0].textContent.toLowerCase();
+        row.style.display = id.includes(input) ? '' : 'none';
+      });
+    }
+
+    async function loadPayouts() {
+      const res = await fetch('https://arada-bingo-bot.onrender.com/payouts', {
+        headers: { 'x-admin-token': adminToken }
+      });
+      const data = await res.json();
+      const tbody = document.querySelector('#payoutTable tbody');
+      tbody.innerHTML = '';
+
+      data.payouts.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${p.telegramId}</td>
+          <td>${p.amount}</td>
+          <td>${p.status}</td>
+          <td>${new Date(p.requestedAt).toLocaleString()}</td>
+          <td>${p.processedAt ? new Date(p.processedAt).toLocaleString() : '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function loadStats() {
+      const res = await fetch('https://arada-bingo-bot.onrender.com/stats', {
+        headers: { 'x-admin-token': adminToken }
+      });
+      const data = await res.json();
+      document.getElementById('stats').innerHTML = `
+        <p>👥 Players: ${data.players}</p>
+        <p>📥 Total Deposits: ${data.totalDeposits}</p>
+        <p>💸 Total Payouts: ${data.totalPayouts}</p>
+        <p>🏆 Top Referrer: ${data.topReferrer}</p>
+      `;
+    }
+
+    function refreshAll() {
+      loadDeposits();
+      loadPayouts();
+      loadStats();
+    }
+
+    setInterval(refreshAll, 10000); // Auto-refresh every 10s
+    refreshAll(); // Initial load
+  </script>
+</body>
+</html>
