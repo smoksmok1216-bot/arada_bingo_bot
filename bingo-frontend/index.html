@@ -5,6 +5,77 @@
   <title>Arada Bingo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f9f9f9;
+      text-align: center;
+    }
+    header {
+      background: #ffcc00;
+      padding: 1em;
+    }
+    .controls {
+      margin: 1em;
+    }
+    #bingo-card {
+      display: grid;
+      grid-template-rows: repeat(5, 1fr);
+      gap: 5px;
+      margin: 1em;
+    }
+    .bingo-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+    }
+    .bingo-cell {
+      background: #fff;
+      border: 2px solid #ccc;
+      padding: 1em;
+      font-size: 1.2em;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background 0.3s;
+    }
+    .bingo-cell.marked {
+      background: #4caf50;
+      color: white;
+      border-color: #388e3c;
+    }
+    #status-message {
+      margin: 1em;
+      font-weight: bold;
+    }
+    #win-popup {
+      display: none;
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #ffeb3b;
+      padding: 2em;
+      border-radius: 12px;
+      font-size: 1.5em;
+      z-index: 999;
+      animation: pop 0.5s ease-out;
+    }
+    @keyframes pop {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    footer {
+      position: sticky;
+      bottom: 0;
+      background: #eee;
+      padding: 1em;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  </style>
 </head>
 <body>
   <header>
@@ -18,28 +89,27 @@
   </div>
 
   <div id="bingo-card"></div>
-
   <div id="status-message"></div>
+  <div id="win-popup">🎉 ቢንጎ አሸንፈህ!</div>
 
-  <audio id="bingo-audio" src=""></audio>
+  <footer>
+    <span>💰 Coins: <span id="coin-count">0</span></span>
+    <button onclick="playBingo()">🔁 Play Again</button>
+  </footer>
 
-  <script src="script.js"></script>
   <script>
-    // Telegram Web App integration
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
-    }
+    let telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'demo123';
 
     async function playBingo() {
       document.getElementById('loading').style.display = 'block';
-      const res = await fetch('https://your-backend-url.com/game/card');
+      const res = await fetch(`https://your-backend-url.com/game/card/${telegramId}`);
       const data = await res.json();
 
       if (data.success) {
         renderCard(data.card);
         document.getElementById('loading').style.display = 'none';
         document.getElementById('status-message').textContent = '🎯 Card loaded. Tap to play!';
+        document.getElementById('win-popup').style.display = 'none';
       } else {
         document.getElementById('status-message').textContent = '❌ Failed to load card';
       }
@@ -55,32 +125,13 @@
           const cellDiv = document.createElement('div');
           cellDiv.className = 'bingo-cell';
           cellDiv.textContent = cell;
-          cellDiv.onclick = () => markCell(rowIndex, colIndex);
+          cellDiv.onclick = () => markCell(rowIndex, colIndex, cellDiv);
           rowDiv.appendChild(cellDiv);
         });
         container.appendChild(rowDiv);
       });
     }
 
-    async function markCell(row, col) {
-      const res = await fetch('https://your-backend-url.com/game/mark', {
+    async function markCell(row, col, cellDiv) {
+      const res = await fetch(`https://your-backend-url.com/game/mark/${telegramId}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ row, col })
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        document.getElementById('status-message').textContent = data.message;
-        if (data.audio) {
-          const audio = document.getElementById('bingo-audio');
-          audio.src = data.audio;
-          audio.play();
-        }
-      } else {
-        document.getElementById('status-message').textContent = '❌ Invalid move';
-      }
-    }
-  </script>
-</body>
-</html>
