@@ -19,6 +19,7 @@
     audio { display: none; }
   </style>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Replace with your own hosted audio files -->
   <audio id="winAudio" src="https://your-audio-host.com/amharic-win.mp3"></audio>
   <audio id="loseAudio" src="https://your-audio-host.com/amharic-lose.mp3"></audio>
 </head>
@@ -112,11 +113,22 @@
   </div>
 
   <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    const telegramId = tg.initDataUnsafe?.user?.id?.toString() || localStorage.getItem('telegramId') || 'unknown';
-    const username = tg.initDataUnsafe?.user?.username || localStorage.getItem('username') || '';
-    const name = tg.initDataUnsafe?.user?.first_name || localStorage.getItem('name') || '';
+    // Telegram Web App identity
+    const tg = window.Telegram?.WebApp;
+    if (tg && tg.expand) tg.expand();
+
+    const telegramId =
+      tg?.initDataUnsafe?.user?.id?.toString() ||
+      localStorage.getItem('telegramId') ||
+      'unknown';
+    const username =
+      tg?.initDataUnsafe?.user?.username ||
+      localStorage.getItem('username') ||
+      '';
+    const name =
+      tg?.initDataUnsafe?.user?.first_name ||
+      localStorage.getItem('name') ||
+      '';
 
     localStorage.setItem('telegramId', telegramId);
     localStorage.setItem('username', username);
@@ -124,6 +136,7 @@
 
     document.getElementById('showTid').textContent = telegramId;
 
+    // Language
     function setLanguage() {
       const lang = document.getElementById('language').value;
       localStorage.setItem('lang', lang);
@@ -133,6 +146,7 @@
     function applyLanguage(lang) {
       if (lang === 'am') {
         document.querySelector('h1').textContent = 'እንኳን ደህና መጡ ወደ አራዳ ቢንጎ 🎉';
+        // You can extend to translate section headings and labels here
       } else {
         document.querySelector('h1').textContent = 'Welcome to Arada Bingo 🎉';
       }
@@ -140,43 +154,171 @@
 
     applyLanguage(localStorage.getItem('lang') || 'am');
 
+    // Profile
     async function loadProfile() {
-      const res = await fetch(`/api/players/${telegramId}`);
-      const data = await res.json();
-      document.getElementById('name').textContent = data.name || 'N/A';
-      document.getElementById('coins').textContent = data.coins ?? 0;
-      document.getElementById('wins').textContent = data.wins ?? 0;
+      try {
+        const res = await fetch(`/api/players/${telegramId}`);
+        const data = await res.json();
+        document.getElementById('name').textContent = data.name || 'N/A';
+        document.getElementById('coins').textContent = data.coins ?? 0;
+        document.getElementById('wins').textContent = data.wins ?? 0;
+      } catch {
+        document.getElementById('name').textContent = 'N/A';
+      }
     }
 
+    // Start game
     async function startGame() {
-      const cards = document.getElementById('cards').value;
-      const res = await fetch('/api/game/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId, cards })
-      });
-      const data = await res.json();
-      document.getElementById('gameResult').textContent = data.message;
-      if (data.win) document.getElementById('winAudio').play().catch(()=>{});
-      else document.getElementById('loseAudio').play().catch(()=>{});
-      loadProfile();
+      try {
+        const cards = document.getElementById('cards').value;
+        const res = await fetch('/api/game/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegramId, cards })
+        });
+        const data = await res.json();
+        document.getElementById('gameResult').textContent = data.message;
+
+        if (data.win) {
+          document.getElementById('winAudio').play().catch(()=>{});
+        } else {
+          document.getElementById('loseAudio').play().catch(()=>{});
+        }
+
+        loadProfile();
+      } catch {
+        document.getElementById('gameResult').textContent = 'Error starting game';
+      }
     }
 
+    // Deposit
     async function submitDeposit() {
-      const amount = document.getElementById('amount').value;
-      const screenshot = document.getElementById('screenshot').value;
-      const res = await fetch('/api/deposit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegramId, amount, screenshot })
-      });
-      const data = await res.json();
-      document.getElementById('depositResult').textContent = data.message || 'Done';
+      try {
+        const amount = document.getElementById('amount').value;
+        const screenshot = document.getElementById('screenshot').value;
+        const res = await fetch('/api/deposit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegramId, amount, screenshot })
+        });
+        const data = await res.json();
+        document.getElementById('depositResult').textContent = data.message || 'Done';
+      } catch {
+        document.getElementById('depositResult').textContent = 'Error submitting deposit';
+      }
     }
 
+    // Payout
     async function submitPayout() {
-      const amount = document.getElementById('payoutAmount').value;
-      const method = document.getElementById('payoutMethod').value;
-      const res = await fetch('/api/payout/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json
+      try {
+        const amount = document.getElementById('payoutAmount').value;
+        const method = document.getElementById('payoutMethod').value;
+        const res = await fetch('/api/payout/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegramId, amount, method })
+        });
+        const data = await res.json();
+        document.getElementById('payoutResult').textContent = data.message || 'Submitted';
+      } catch {
+        document.getElementById('payoutResult').textContent = 'Error submitting payout';
+      }
+    }
+
+    async function loadPayouts() {
+      try {
+        const res = await fetch(`/api/payouts?telegramId=${encodeURIComponent(telegramId)}`);
+        const data = await res.json();
+        const container = document.getElementById('payouts');
+        container.innerHTML = '';
+        (data.payouts || []).forEach(p => {
+          const div = document.createElement('div');
+          div.className = 'item';
+          div.textContent = `${new Date(p.createdAt).toLocaleString()} — ${p.amount} via ${p.method} → ${p.status}`;
+          container.appendChild(div);
+        });
+      } catch {
+        const container = document.getElementById('payouts');
+        container.innerHTML = '<div class="item">Error loading payouts</div>';
+      }
+    }
+
+    // History
+    async function loadHistory() {
+      try {
+        const res = await fetch(`/api/game/history/${telegramId}`);
+        const data = await res.json();
+        const container = document.getElementById('history');
+        container.innerHTML = '';
+        (data.history || []).forEach(g => {
+          const div = document.createElement('div');
+          div.className = 'item';
+          div.textContent = `${new Date(g.createdAt).toLocaleString()} — ${g.cards} cards, cost ${g.cost} → ${g.win ? 'Win' : 'Loss'} | Coins: ${g.coinsBefore} → ${g.coinsAfter}`;
+          container.appendChild(div);
+        });
+      } catch {
+        const container = document.getElementById('history');
+        container.innerHTML = '<div class="item">Error loading history</div>';
+      }
+    }
+
+    // Referrals
+    async function trackReferral() {
+      try {
+        const inviterId = document.getElementById('inviterId').value.trim();
+        if (!inviterId) {
+          document.getElementById('referralResult').textContent = 'Enter inviter Telegram ID';
+          return;
+        }
+        const res = await fetch('/api/referral/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ inviterId, invitedId: telegramId })
+        });
+        const data = await res.json();
+        document.getElementById('referralResult').textContent = data.message || 'Tracked';
+      } catch {
+        document.getElementById('referralResult').textContent = 'Error tracking referral';
+      }
+    }
+
+    async function giveReferralBonus() {
+      try {
+        const res = await fetch('/api/referral/bonus', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invitedId: telegramId })
+        });
+        const data = await res.json();
+        document.getElementById('bonusResult').textContent = data.message || 'Done';
+        loadProfile();
+      } catch {
+        document.getElementById('bonusResult').textContent = 'Error giving bonus';
+      }
+    }
+
+    // Leaderboard
+    async function loadLeaderboard() {
+      try {
+        const res = await fetch('/api/leaderboard');
+        const data = await res.json();
+        const container = document.getElementById('leaderboard');
+        container.innerHTML = '';
+        (data.leaderboard || []).forEach((p, i) => {
+          const div = document.createElement('div');
+          div.className = 'item';
+          const label = p.name || p.username || p.telegramId || 'Player';
+          div.textContent = `#${i + 1} — ${label} | Wins: ${p.wins} | Coins: ${p.coins}`;
+          container.appendChild(div);
+        });
+      } catch {
+        const container = document.getElementById('leaderboard');
+        container.innerHTML = '<div class="item">Error loading leaderboard</div>';
+      }
+    }
+
+    // Init
+    loadProfile();
+  </script>
+</body>
+</html>
