@@ -13,16 +13,8 @@ const playerSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-playerSchema.methods.addCoins = function(amount) {
-  this.coins += amount;
-};
-
-playerSchema.methods.subtractCoins = function(amount) {
-  this.coins = Math.max(0, this.coins - amount);
-};
-
-playerSchema.methods.incrementWins = function() {
-  this.wins += 1;
-};
+playerSchema.methods.addCoins = function(amount) { this.coins += amount; };
+playerSchema.methods.subtractCoins = function(amount) { this.coins = Math.max(0, this.coins - amount); };
+playerSchema.methods.incrementWins = function() { this.wins += 1; };
 
 mongoose.model('Player', playerSchema);
