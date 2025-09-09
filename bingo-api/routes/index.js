@@ -6,6 +6,7 @@ require('dotenv').config();
 const Player = mongoose.model('Player');
 const Deposit = mongoose.model('Deposit');
 const Payout = mongoose.model('Payout');
+const Referral = mongoose.model('Referral');
 
 // 🔐 Admin token check
 const checkAdmin = (req, res, next) => {
@@ -105,6 +106,58 @@ router.get('/stats', checkAdmin, async (req, res) => {
   const totalDeposits = await Deposit.countDocuments();
   const totalPayouts = await Payout.countDocuments();
   res.json({ totalPlayers, totalDeposits, totalPayouts });
+});
+
+// 🧑‍🤝‍🧑 Track referral
+router.post('/referral/track', async (req, res) => {
+  const { inviterId, invitedId } = req.body;
+  const existing = await Referral.findOne({ invitedId });
+  if (existing) return res.status(200).json({ message: 'Already tracked' });
+
+  const referral = new Referral({ inviterId, invitedId });
+  await referral.save();
+  res.status(200).json({ message: 'Referral tracked' });
+});
+
+// 🎁 Give referral bonus
+router.post('/referral/bonus', async (req, res) => {
+  const { invitedId } = req.body;
+  const referral = await Referral.findOne({ invitedId });
+  if (!referral || referral.bonusGiven) return res.status(400).json({ message: 'Invalid or already rewarded' });
+
+  const inviter = await Player.findOne({ telegramId: referral.inviterId });
+  if (!inviter) return res.status(404).json({ message: 'Inviter not found' });
+
+  inviter.addCoins(5);
+  referral.bonusGiven = true;
+  await inviter.save();
+  await referral.save();
+  res.status(200).json({ message: 'Bonus given' });
+});
+
+// 🏆 Leaderboard
+router.get('/leaderboard', async (req, res) => {
+  const topPlayers = await Player.find().sort({ wins: -1 }).limit(10);
+  res.status(200).json({ leaderboard: topPlayers });
+});
+
+// 💸 Submit payout
+router.post('/payout/submit', async (req, res) => {
+  const { telegramId, amount, method } = req.body;
+  if (!telegramId || !amount || !method) {
+    return res.status(400).json({ message: 'Missing fields' });
+  }
+
+  const payout = new Payout({ telegramId, amount, method, status: 'pending' });
+  await payout.save();
+  res.status(200).json({ message: 'Payout request submitted' });
+});
+
+// 📜 Get payout history
+router.get('/payouts', async (req, res) => {
+  const { telegramId } = req.query;
+  const payouts = await Payout.find({ telegramId }).sort({ createdAt: -1 });
+  res.status(200).json({ payouts });
 });
 
 module.exports = router;
