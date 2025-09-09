@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; padding: 1em; background: #f4f4f4; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    th, td { padding: 0.5em; border: 1px solid #ccc; }
+    img { max-width: 100px; }
+    button { margin: 0 4px; }
+  </style>
+</head>
+<body>
+  <h1>🛠️ Arada Bingo Admin Panel</h1>
+  <table id="depositTable">
+    <thead>
+      <tr>
+        <th>Telegram ID</th>
+        <th>Amount</th>
+        <th>Screenshot</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const adminToken = 'your-admin-token-here';
+
+    async function loadDeposits() {
+      const res = await fetch('/deposit/all', {
+        headers: { 'x-admin-token': adminToken }
+      });
+      const data = await res.json();
+      const tbody = document.querySelector('#depositTable tbody');
+      tbody.innerHTML = '';
+      data.deposits.forEach(dep => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${dep.telegramId}</td>
+          <td>${dep.amount}</td>
+          <td><img src="${dep.screenshot}" alt="screenshot"></td>
+          <td>${dep.status}</td>
+          <td>
+            <button onclick="approve('${dep._id}')">✅</button>
+            <button onclick="reject('${dep._id}')">❌</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function approve(id) {
+      await fetch(`/admin/approve/${id}`, {
+        method: 'POST',
+        headers: { 'x-admin-token': adminToken }
+      });
+      loadDeposits();
+    }
+
+    async function reject(id) {
+      await fetch(`/admin/reject/${id}`, {
+        method: 'POST',
+        headers: { 'x-admin-token': adminToken }
+      });
+      loadDeposits();
+    }
+
+    loadDeposits();
+    setInterval(loadDeposits, 10000);
+  </script>
+</body>
+</html>
