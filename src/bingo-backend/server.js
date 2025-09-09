@@ -6,7 +6,7 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Import route files
+// Route imports
 import referralRoute from './routes/referral.js';
 import depositRoute from './routes/deposit.js';
 import adminRoute from './routes/admin.js';
@@ -14,9 +14,9 @@ import healthRoute from './routes/health.js';
 import playersRoute from './routes/players.js';
 import statsRoute from './routes/stats.js';
 import gameRoute from './routes/game.js';
+import payoutRoute from './routes/payout.js';
 
 dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -25,14 +25,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Middleware
-app.use(cors()); // ✅ Enables frontend access from Netlify or Telegram Web App
+app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Static file serving for screenshots
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Static file serving
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Screenshots
+app.use('/audio', express.static(path.join(__dirname, 'public/audio'))); // Amharic audio
+app.use('/', express.static(path.join(__dirname, '../bingo-frontend'))); // Telegram Web App
 
-// API Routes
+// API routes
 app.use('/referral', referralRoute);
 app.use('/deposit', depositRoute);
 app.use('/admin', adminRoute);
@@ -40,10 +42,11 @@ app.use('/health', healthRoute);
 app.use('/players', playersRoute);
 app.use('/stats', statsRoute);
 app.use('/game', gameRoute);
+app.use('/payouts', payoutRoute);
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.send('🎯 Arada Bingo Bot backend is running');
+  res.sendFile(path.join(__dirname, '../bingo-frontend/index.html'));
 });
 
 // MongoDB connection
