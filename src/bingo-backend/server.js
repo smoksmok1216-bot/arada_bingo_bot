@@ -30,9 +30,9 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 // Static file serving
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Screenshots
-app.use('/audio', express.static(path.join(__dirname, 'public/audio'))); // Amharic audio
-app.use('/', express.static(path.join(__dirname, '../bingo-frontend'))); // Telegram Web App
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/audio', express.static(path.join(__dirname, 'public/audio')));
+app.use('/', express.static(path.join(__dirname, '../bingo-frontend')));
 
 // API routes
 app.use('/referral', referralRoute);
@@ -49,9 +49,9 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../bingo-frontend/index.html'));
 });
 
-// Admin dashboard route
+// Admin dashboard route (served from subfolder)
 app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, '../bingo-frontend/admin.html'));
+  res.sendFile(path.join(__dirname, '../bingo-frontend/admin/admin.html'));
 });
 
 // MongoDB connection
