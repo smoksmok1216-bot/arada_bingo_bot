@@ -3,27 +3,50 @@
 <head>
   <meta charset="UTF-8" />
   <title>Arada Bingo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
-    h1 { color: #333; }
-    .section { background: white; padding: 15px; margin-bottom: 20px; border-radius: 8px; }
-    button { padding: 10px 20px; margin-top: 10px; }
-    input, select { margin-top: 5px; display: block; width: 100%; padding: 8px; }
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f0f2f5; color: #222; }
+    h1, h2 { color: #222; }
+    .section { background: #fff; padding: 16px; margin-bottom: 18px; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    label { font-weight: 600; display: block; margin-top: 6px; }
+    input, select { padding: 10px; width: 100%; border: 1px solid #ddd; border-radius: 8px; }
+    button { padding: 10px 16px; border: none; border-radius: 8px; background: #1f7aec; color: #fff; cursor: pointer; }
+    button.secondary { background: #6b7280; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 12px; }
+    .list { margin-top: 10px; }
+    .item { padding: 10px; border-bottom: 1px solid #eee; }
+    audio { display: none; }
   </style>
+  <!-- Replace with your hosted files -->
+  <audio id="winAudio" src="https://your-audio-host.com/amharic-win.mp3"></audio>
+  <audio id="loseAudio" src="https://your-audio-host.com/amharic-lose.mp3"></audio>
 </head>
 <body>
   <h1>Welcome to Arada Bingo 🎉</h1>
 
   <div class="section">
+    <label for="language">Language</label>
+    <select id="language" onchange="setLanguage()">
+      <option value="am">አማርኛ</option>
+      <option value="en">English</option>
+    </select>
+  </div>
+
+  <div class="section">
     <h2>Your Profile</h2>
+    <div><span class="pill">Telegram ID</span> <span id="showTid"></span></div>
     <p><strong>Name:</strong> <span id="name"></span></p>
     <p><strong>Coins:</strong> <span id="coins"></span></p>
     <p><strong>Wins:</strong> <span id="wins"></span></p>
+    <button class="secondary" onclick="loadHistory()">View Game History</button>
+    <div id="history" class="list"></div>
   </div>
 
   <div class="section">
     <h2>Start Game</h2>
-    <label>Number of Cards:</label>
+    <label>Number of Cards</label>
     <select id="cards">
       <option value="1">1 card (2 coins)</option>
       <option value="2">2 cards (4 coins)</option>
@@ -35,23 +58,99 @@
 
   <div class="section">
     <h2>Submit Deposit</h2>
-    <label>Amount:</label>
-    <input type="number" id="amount" />
-    <label>Screenshot URL:</label>
-    <input type="text" id="screenshot" />
-    <button onclick="submitDeposit()">Submit</button>
+    <div class="row">
+      <div style="flex:1">
+        <label>Amount</label>
+        <input type="number" id="amount" />
+      </div>
+      <div style="flex:2">
+        <label>Screenshot URL</label>
+        <input type="text" id="screenshot" placeholder="https://..." />
+      </div>
+    </div>
+    <button onclick="submitDeposit()">Submit Deposit</button>
     <p id="depositResult"></p>
   </div>
 
+  <div class="section">
+    <h2>Request Payout</h2>
+    <div class="row">
+      <div style="flex:1">
+        <label>Amount</label>
+        <input type="number" id="payoutAmount" />
+      </div>
+      <div style="flex:1">
+        <label>Method</label>
+        <select id="payoutMethod">
+          <option value="telebirr">telebirr</option>
+          <option value="cbe">CBE</option>
+          <option value="amole">Amole</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <button onclick="submitPayout()">Submit Payout</button>
+    <p id="payoutResult"></p>
+    <button class="secondary" onclick="loadPayouts()">My Payouts</button>
+    <div id="payouts" class="list"></div>
+  </div>
+
+  <div class="section">
+    <h2>Referrals</h2>
+    <label>Inviter Telegram ID</label>
+    <input type="text" id="inviterId" placeholder="Friend’s Telegram ID" />
+    <button onclick="trackReferral()">Track Referral</button>
+    <p id="referralResult"></p>
+    <label>Mark Bonus for Inviter (uses your Telegram ID)</label>
+    <button class="secondary" onclick="giveReferralBonus()">Give Bonus to Inviter</button>
+    <p id="bonusResult"></p>
+  </div>
+
+  <div class="section">
+    <h2>Leaderboard</h2>
+    <button onclick="loadLeaderboard()">Load Top Players</button>
+    <div id="leaderboard" class="list"></div>
+  </div>
+
   <script>
-    const telegramId = '123456789'; // Replace with actual Telegram ID from bot
+    // Replace with actual Telegram ID from your Telegram Web App initDataUnsafe
+    const telegramId = localStorage.getItem('telegramId') || '123456789';
+    document.getElementById('showTid').textContent = telegramId;
+
+    function setLanguage() {
+      const lang = document.getElementById('language').value;
+      localStorage.setItem('lang', lang);
+      applyLanguage(lang);
+    }
+
+    function applyLanguage(lang) {
+      if (lang === 'am') {
+        document.querySelector('h1').textContent = 'እንኳን ደህና መጡ ወደ አራዳ ቢንጎ 🎉';
+        document.querySelectorAll('h2')[0].textContent = 'መገለጫዎ';
+        document.querySelectorAll('h2')[1].textContent = 'ጨዋታ ጀምር';
+        document.querySelectorAll('h2')[2].textContent = 'ተቀባይነት አስገባ';
+        document.querySelectorAll('h2')[3].textContent = 'ክፍያ ጠይቅ';
+        document.querySelectorAll('h2')[4].textContent = 'ሪፈራል';
+        document.querySelectorAll('h2')[5].textContent = 'መሪዎች ዝርዝር';
+      } else {
+        document.querySelector('h1').textContent = 'Welcome to Arada Bingo 🎉';
+        document.querySelectorAll('h2')[0].textContent = 'Your Profile';
+        document.querySelectorAll('h2')[1].textContent = 'Start Game';
+        document.querySelectorAll('h2')[2].textContent = 'Submit Deposit';
+        document.querySelectorAll('h2')[3].textContent = 'Request Payout';
+        document.querySelectorAll('h2')[4].textContent = 'Referrals';
+        document.querySelectorAll('h2')[5].textContent = 'Leaderboard';
+      }
+    }
+
+    applyLanguage(localStorage.getItem('lang') || 'am');
 
     async function loadProfile() {
       const res = await fetch(`/api/players/${telegramId}`);
       const data = await res.json();
       document.getElementById('name').textContent = data.name || 'N/A';
-      document.getElementById('coins').textContent = data.coins;
-      document.getElementById('wins').textContent = data.wins;
+      document.getElementById('coins').textContent = data.coins ?? 0;
+      document.getElementById('wins').textContent = data.wins ?? 0;
     }
 
     async function startGame() {
@@ -63,6 +162,13 @@
       });
       const data = await res.json();
       document.getElementById('gameResult').textContent = data.message;
+
+      if (data.win) {
+        document.getElementById('winAudio').play().catch(()=>{});
+      } else {
+        document.getElementById('loseAudio').play().catch(()=>{});
+      }
+
       loadProfile();
     }
 
@@ -75,7 +181,84 @@
         body: JSON.stringify({ telegramId, amount, screenshot })
       });
       const data = await res.json();
-      document.getElementById('depositResult').textContent = data.message;
+      document.getElementById('depositResult').textContent = data.message || 'Done';
+    }
+
+    async function submitPayout() {
+      const amount = document.getElementById('payoutAmount').value;
+      const method = document.getElementById('payoutMethod').value;
+      const res = await fetch('/api/payout/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId, amount, method })
+      });
+      const data = await res.json();
+      document.getElementById('payoutResult').textContent = data.message || 'Submitted';
+    }
+
+    async function loadPayouts() {
+      const res = await fetch(`/api/payouts?telegramId=${encodeURIComponent(telegramId)}`);
+      const data = await res.json();
+      const container = document.getElementById('payouts');
+      container.innerHTML = '';
+      (data.payouts || []).forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.textContent = `${new Date(p.createdAt).toLocaleString()} — ${p.amount} via ${p.method} → ${p.status}`;
+        container.appendChild(div);
+      });
+    }
+
+    async function loadHistory() {
+      const res = await fetch(`/api/game/history/${telegramId}`);
+      const data = await res.json();
+      const container = document.getElementById('history');
+      container.innerHTML = '';
+      (data.history || []).forEach(g => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.textContent = `${new Date(g.createdAt).toLocaleString()} — ${g.cards} cards, cost ${g.cost} → ${g.win ? 'Win' : 'Loss'} | Coins: ${g.coinsBefore} → ${g.coinsAfter}`;
+        container.appendChild(div);
+      });
+    }
+
+    async function trackReferral() {
+      const inviterId = document.getElementById('inviterId').value.trim();
+      if (!inviterId) {
+        document.getElementById('referralResult').textContent = 'Enter inviter Telegram ID';
+        return;
+      }
+      const res = await fetch('/api/referral/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviterId, invitedId: telegramId })
+      });
+      const data = await res.json();
+      document.getElementById('referralResult').textContent = data.message || 'Tracked';
+    }
+
+    async function giveReferralBonus() {
+      const res = await fetch('/api/referral/bonus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invitedId: telegramId })
+      });
+      const data = await res.json();
+      document.getElementById('bonusResult').textContent = data.message || 'Done';
+      loadProfile();
+    }
+
+    async function loadLeaderboard() {
+      const res = await fetch('/api/leaderboard');
+      const data = await res.json();
+      const container = document.getElementById('leaderboard');
+      container.innerHTML = '';
+      (data.leaderboard || []).forEach((p, i) => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.textContent = `#${i + 1} — ${p.name || p.username || p.telegramId} | Wins: ${p.wins} | Coins: ${p.coins}`;
+        container.appendChild(div);
+      });
     }
 
     loadProfile();
