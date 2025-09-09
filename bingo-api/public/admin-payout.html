@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Arada Bingo – Payout Review</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f6f8; color: #222; }
+    h1 { margin-bottom: 10px; }
+    .bar { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
+    input, button { padding: 10px; border-radius: 8px; border: 1px solid #ddd; }
+    button { border: none; background: #1f7aec; color: #fff; cursor: pointer; }
+    button.secondary { background: #6b7280; }
+    .card { background: #fff; padding: 14px; border-radius: 10px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .note { width: 100%; }
+    .meta { font-size: 12px; color: #555; margin-top: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Payout Review Panel</h1>
+  <div class="bar">
+    <input id="token" type="password" placeholder="Admin token (x-admin-token)" />
+    <input id="adminName" type="text" placeholder="Your name (x-admin-name)" />
+    <button onclick="loadPayouts()">Load Payouts</button>
+    <button class="secondary" onclick="filterPending()">Show Pending Only</button>
+  </div>
+
+  <div id="payouts"></div>
+
+  <script>
+    let showPendingOnly = true;
+
+    function filterPending() {
+      showPendingOnly = !showPendingOnly;
+      loadPayouts();
+    }
+
+    async function loadPayouts() {
+      const token = document.getElementById('token').value.trim();
+      const res = await fetch('/api/payout/all', {
+        headers: { 'x-admin-token': token }
+      });
+      const data = await res.json();
+      const container = document.getElementById('payouts');
+      container.innerHTML = '';
+
+      (data.payouts || []).forEach(p => {
+        if (showPendingOnly && p.status !== 'pending') return;
+
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+          <div><strong>${p.telegramId}</strong> — ${p.amount} coins via ${p.method}</div>
+          <div class="meta">Status: ${p.status}${p.reviewedBy ? ' | Reviewed by: ' + p.reviewedBy : ''}${p.adminNote ? ' | Note: ' + p.adminNote : ''}</div>
+          <div class="row">
+            <input class="note" id="note-${p._id}" placeholder="Admin note (optional)" />
+          </div>
+          <div class="row" style="margin-top:10px;">
+            <button onclick="approve('${p._id}')">Approve</button>
+            <button class="secondary" onclick="reject('${p._id}')">Reject</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function approve(id) {
+      const token = document.getElementById('token').value.trim();
+      const adminName = document.getElementById('adminName').value.trim() || 'admin';
+      await fetch(`/api/admin/payout/approve/${id}`, {
+        method: 'POST',
+        headers: { 'x-admin-token': token, 'x-admin-name': adminName }
+      });
+      loadPayouts();
+    }
+
+    async function reject(id) {
+      const token = document.getElementById('token').value.trim();
+      const adminName = document.getElementById('adminName').value.trim() || 'admin';
+      const note = document.getElementById(`note-${id}`).value;
+      await fetch(`/api/admin/payout/reject/${id}`, {
+        method: 'POST',
+        headers: {
+          'x-admin-token': token,
+          'x-admin-name': adminName,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ note })
+      });
+      loadPayouts();
+    }
+
+    loadPayouts();
+  </script>
+</body>
+</html>
