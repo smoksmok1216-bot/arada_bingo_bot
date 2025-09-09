@@ -1,6 +1,6 @@
 import Player from '../models/Player.js';
 
-// GET /referral/:telegramId — show referral stats
+// ✅ GET /referral/:telegramId — show referral stats
 export const getReferralStats = async (req, res) => {
   const { telegramId } = req.params;
 
@@ -24,7 +24,7 @@ export const getReferralStats = async (req, res) => {
   }
 };
 
-// POST /referral/:referralCode — triggered when a user joins via referral
+// ✅ POST /referral/:referralCode — triggered when a user joins via referral
 export const updateReferralStats = async (req, res) => {
   const { referralCode } = req.params;
   const { newUserId } = req.body;
@@ -60,5 +60,27 @@ export const updateReferralStats = async (req, res) => {
   } catch (err) {
     console.error('❌ Referral update error:', err);
     res.status(500).json({ success: false, message: 'Server error while updating referral stats' });
+  }
+};
+
+// ✅ GET /referral/top/list — leaderboard of top referrers
+export const getTopReferrers = async (req, res) => {
+  try {
+    const topPlayers = await Player.find({ referralCoins: { $gt: 0 } })
+      .sort({ referralCoins: -1 })
+      .limit(10);
+
+    const leaderboard = topPlayers.map(p => ({
+      telegramId: p.telegramId,
+      username: p.username || '',
+      referralCode: p.referralCode || p.telegramId,
+      referrals: p.referrals?.length || 0,
+      coinsEarned: p.referralCoins
+    }));
+
+    res.status(200).json({ success: true, leaderboard });
+  } catch (err) {
+    console.error('❌ Error fetching top referrers:', err);
+    res.status(500).json({ success: false, message: 'Server error while fetching leaderboard' });
   }
 };
