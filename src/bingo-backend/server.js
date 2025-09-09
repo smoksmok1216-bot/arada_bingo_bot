@@ -44,9 +44,14 @@ app.use('/stats', statsRoute);
 app.use('/game', gameRoute);
 app.use('/payouts', payoutRoute);
 
-// Root endpoint
+// Root endpoint (Telegram Web App)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../bingo-frontend/index.html'));
+});
+
+// Admin dashboard endpoint
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../bingo-frontend/admin.html'));
 });
 
 // MongoDB connection
