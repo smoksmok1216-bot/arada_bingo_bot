@@ -4,134 +4,52 @@
   <meta charset="UTF-8">
   <title>Arada Bingo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #f9f9f9;
-      text-align: center;
-    }
-    header {
-      background: #ffcc00;
-      padding: 1em;
-    }
-    .controls {
-      margin: 1em;
-    }
-    #bingo-card {
-      display: grid;
-      grid-template-rows: repeat(5, 1fr);
-      gap: 5px;
-      margin: 1em;
-    }
-    .bingo-row {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 5px;
-    }
-    .bingo-cell {
-      background: #fff;
-      border: 2px solid #ccc;
-      padding: 1em;
-      font-size: 1.2em;
-      cursor: pointer;
-      border-radius: 8px;
-      transition: background 0.3s;
-    }
-    .bingo-cell.marked {
-      background: #4caf50;
-      color: white;
-      border-color: #388e3c;
-    }
-    #status-message {
-      margin: 1em;
-      font-weight: bold;
-    }
-    #win-popup {
-      display: none;
-      position: fixed;
-      top: 30%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #ffeb3b;
-      padding: 2em;
-      border-radius: 12px;
-      font-size: 1.5em;
-      z-index: 999;
-      animation: pop 0.5s ease-out;
-    }
-    @keyframes pop {
-      0% { transform: scale(0.5); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
-    }
-    footer {
-      position: sticky;
-      bottom: 0;
-      background: #eee;
-      padding: 1em;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-  </style>
+  <link rel="stylesheet" href="/styles/style.css">
 </head>
 <body>
-  <header>
-    <h1>🎉 Arada Bingo</h1>
-    <p>በኢትዮጵያ ላይ እውነተኛ ሽልማቶችን አግኝ!</p>
-  </header>
-
-  <div class="controls">
-    <button onclick="playBingo()">🎮 ጀምር / Start Game</button>
-    <div id="loading" style="display:none;">🔄 Loading your card...</div>
+  <div id="gameWrapper">
+    <h1>🎉 ቢንጎ እንኳን ደስ አለዎት!</h1>
+    <div id="userInfo">
+      <p>👤 <span id="userName">Loading...</span></p>
+      <p>💰 Coins: <span id="userCoins">0</span></p>
+    </div>
+    <div id="cardSelection">
+      <label><input type="radio" name="cards" value="1" checked> 1 Card (2 coins)</label>
+      <label><input type="radio" name="cards" value="2"> 2 Cards (4 coins)</label>
+      <label><input type="radio" name="cards" value="3"> 3 Cards (6 coins)</label>
+    </div>
+    <button id="startBtn">Start Game</button>
+    <div id="gameArea"></div>
+    <audio id="winSound" src="/audio/bingo_win.mp3"></audio>
   </div>
 
-  <div id="bingo-card"></div>
-  <div id="status-message"></div>
-  <div id="win-popup">🎉 ቢንጎ አሸንፈህ!</div>
-
-  <footer>
-    <span>💰 Coins: <span id="coin-count">0</span></span>
-    <button onclick="playBingo()">🔁 Play Again</button>
-  </footer>
-
   <script>
-    let telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'demo123';
+    const tg = window.Telegram.WebApp;
+    const userId = tg.initDataUnsafe?.user?.id || 'guest';
+    const userName = tg.initDataUnsafe?.user?.first_name || 'Guest';
 
-    async function playBingo() {
-      document.getElementById('loading').style.display = 'block';
-      const res = await fetch(`https://your-backend-url.com/game/card/${telegramId}`);
+    document.getElementById('userName').textContent = userName;
+
+    async function fetchCoins() {
+      const res = await fetch(`/players/${userId}`);
       const data = await res.json();
-
-      if (data.success) {
-        renderCard(data.card);
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('status-message').textContent = '🎯 Card loaded. Tap to play!';
-        document.getElementById('win-popup').style.display = 'none';
-      } else {
-        document.getElementById('status-message').textContent = '❌ Failed to load card';
-      }
+      document.getElementById('userCoins').textContent = data.coins;
     }
 
-    function renderCard(card) {
-      const container = document.getElementById('bingo-card');
-      container.innerHTML = '';
-      card.forEach((row, rowIndex) => {
-        const rowDiv = document.createElement('div');
-        rowDiv.className = 'bingo-row';
-        row.forEach((cell, colIndex) => {
-          const cellDiv = document.createElement('div');
-          cellDiv.className = 'bingo-cell';
-          cellDiv.textContent = cell;
-          cellDiv.onclick = () => markCell(rowIndex, colIndex, cellDiv);
-          rowDiv.appendChild(cellDiv);
-        });
-        container.appendChild(rowDiv);
-      });
-    }
-
-    async function markCell(row, col, cellDiv) {
-      const res = await fetch(`https://your-backend-url.com/game/mark/${telegramId}`, {
+    document.getElementById('startBtn').onclick = async () => {
+      const selected = document.querySelector('input[name="cards"]:checked').value;
+      const res = await fetch(`/game/start`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegramId: userId, cards: selected })
+      });
+      const result = await res.json();
+      document.getElementById('gameArea').textContent = result.message;
+      if (result.win) document.getElementById('winSound').play();
+      fetchCoins();
+    };
+
+    fetchCoins();
+  </script>
+</body>
+</html>
