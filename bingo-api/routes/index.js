@@ -160,4 +160,39 @@ router.get('/payouts', async (req, res) => {
   res.status(200).json({ payouts });
 });
 
+// 📋 View all payouts (admin)
+router.get('/payout/all', checkAdmin, async (req, res) => {
+  const payouts = await Payout.find().sort({ createdAt: -1 });
+  res.json({ payouts });
+});
+
+// ✅ Approve payout (admin)
+router.post('/admin/payout/approve/:id', checkAdmin, async (req, res) => {
+  const payout = await Payout.findById(req.params.id);
+  if (!payout || payout.status !== 'pending') {
+    return res.status(400).json({ message: 'Invalid payout' });
+  }
+
+  payout.status = 'sent';
+  payout.processedAt = new Date();
+  payout.reviewedBy = 'admin';
+  await payout.save();
+  res.json({ message: 'Payout approved' });
+});
+
+// ❌ Reject payout (admin)
+router.post('/admin/payout/reject/:id', checkAdmin, async (req, res) => {
+  const payout = await Payout.findById(req.params.id);
+  if (!payout || payout.status !== 'pending') {
+    return res.status(400).json({ message: 'Invalid payout' });
+  }
+
+  payout.status = 'failed';
+  payout.processedAt = new Date();
+  payout.reviewedBy = 'admin';
+  payout.adminNote = req.body.note || 'Rejected';
+  await payout.save();
+  res.json({ message: 'Payout rejected' });
+});
+
 module.exports = router;
