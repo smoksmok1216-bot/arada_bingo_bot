@@ -3,7 +3,6 @@ require('dotenv').config();
 
 const db = mongoose.connection;
 
-// 🔌 Connect to MongoDB
 mongoose
   .connect(process.env.DB_URI, {
     useNewUrlParser: true,
@@ -12,10 +11,8 @@ mongoose
   .then(() => console.log('✅ DB Connected'))
   .catch(err => console.log(`❌ DB Connection Error: ${err.message}`));
 
-// 🛠 Legacy option (safe for older Mongoose versions)
 mongoose.set('useCreateIndex', true);
 
-// 🔊 Connection events
 db.on('connected', () => {
   console.log('Mongoose connected to ' + process.env.DB_URI);
 });
@@ -26,7 +23,6 @@ db.on('disconnected', () => {
   console.log('Mongoose disconnected');
 });
 
-// 🧹 Graceful shutdown
 const gracefulShutdown = (msg, callback) => {
   db.close(() => {
     console.log('Mongoose disconnected through ' + msg);
@@ -46,8 +42,6 @@ process.on('SIGINT', () => {
   });
 });
 
-// 📦 Load models
 require('./player');
 require('./deposit');
 require('./payout');
-// Optional: require('./admins'); if using admin login
